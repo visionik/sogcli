@@ -3,8 +3,8 @@ package cli
 import (
 	"fmt"
 
-	"github.com/visionik/sog/internal/config"
-	"github.com/visionik/sog/internal/imap"
+	"github.com/visionik/sogcli/internal/config"
+	"github.com/visionik/sogcli/internal/imap"
 )
 
 // FoldersCmd handles folder management.

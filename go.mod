@@ -1,4 +1,4 @@
-module github.com/visionik/sog
+module github.com/visionik/sogcli
 
 go 1.23
 

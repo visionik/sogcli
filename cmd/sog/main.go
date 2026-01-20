@@ -8,7 +8,7 @@ import (
 	"os"
 
 	"github.com/alecthomas/kong"
-	"github.com/visionik/sog/internal/cli"
+	"github.com/visionik/sogcli/internal/cli"
 )
 
 var version = "dev"

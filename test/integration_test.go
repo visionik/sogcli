@@ -8,8 +8,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/visionik/sog/internal/imap"
-	"github.com/visionik/sog/internal/smtp"
+	"github.com/visionik/sogcli/internal/imap"
+	"github.com/visionik/sogcli/internal/smtp"
 )
 
 // End-to-end test: send email via SMTP, read via IMAP
