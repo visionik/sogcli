@@ -25,6 +25,7 @@ type Root struct {
 	Contacts ContactsCmd `cmd:"" aliases:"con" help:"Contact operations (CardDAV)"`
 	Tasks    TasksCmd    `cmd:"" aliases:"t" help:"Task operations (CalDAV VTODO)"`
 	Drive    DriveCmd    `cmd:"" aliases:"files" help:"File operations (WebDAV)"`
+	Invite   InviteCmd   `cmd:"" aliases:"inv" help:"Meeting invitations (iTIP/iMIP)"`
 	Folders  FoldersCmd  `cmd:"" aliases:"f" help:"Manage folders"`
 	Drafts   DraftsCmd   `cmd:"" aliases:"d" help:"Manage drafts"`
 	Idle     IdleCmd     `cmd:"" help:"Watch for new mail (IMAP IDLE)"`

@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -343,7 +344,7 @@ func (c *MailSendCmd) Run(root *Root) error {
 		Body:    body,
 	}
 
-	if err := smtpClient.Send(msg); err != nil {
+	if err := smtpClient.Send(context.Background(), msg); err != nil {
 		return fmt.Errorf("failed to send: %w", err)
 	}
 
@@ -717,7 +718,7 @@ func (c *MailReplyCmd) Run(root *Root) error {
 		Body:    c.Body,
 	}
 
-	if err := smtpClient.Send(msg); err != nil {
+	if err := smtpClient.Send(context.Background(), msg); err != nil {
 		return fmt.Errorf("failed to send: %w", err)
 	}
 
@@ -818,7 +819,7 @@ func (c *MailForwardCmd) Run(root *Root) error {
 		Body:    body,
 	}
 
-	if err := smtpClient.Send(msg); err != nil {
+	if err := smtpClient.Send(context.Background(), msg); err != nil {
 		return fmt.Errorf("failed to send: %w", err)
 	}
 

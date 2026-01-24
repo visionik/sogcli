@@ -2,7 +2,10 @@
 package smtp
 
 import (
+	"context"
+	"crypto/rand"
 	"crypto/tls"
+	"encoding/base64"
 	"fmt"
 	"strings"
 
@@ -48,18 +51,30 @@ func NewClient(cfg Config) *Client {
 	}
 }
 
+// Connect creates and returns a new SMTP client.
+func Connect(cfg Config) (*Client, error) {
+	return NewClient(cfg), nil
+}
+
+// Close closes the client (no-op for SMTP as connections are per-send).
+func (c *Client) Close() error {
+	return nil
+}
+
 // Message represents an email to send.
 type Message struct {
-	From    string
-	To      []string
-	Cc      []string
-	Bcc     []string
-	Subject string
-	Body    string
+	From           string
+	To             []string
+	Cc             []string
+	Bcc            []string
+	Subject        string
+	Body           string
+	CalendarData   []byte // iCalendar attachment for invites
+	CalendarMethod string // iTIP method (REQUEST, REPLY, CANCEL)
 }
 
 // Send sends an email message.
-func (c *Client) Send(msg *Message) error {
+func (c *Client) Send(ctx context.Context, msg *Message) error {
 	addr := fmt.Sprintf("%s:%d", c.host, c.port)
 
 	// Build recipients list
@@ -77,9 +92,47 @@ func (c *Client) Send(msg *Message) error {
 	}
 	content.WriteString(fmt.Sprintf("Subject: %s\r\n", msg.Subject))
 	content.WriteString("MIME-Version: 1.0\r\n")
-	content.WriteString("Content-Type: text/plain; charset=utf-8\r\n")
-	content.WriteString("\r\n")
-	content.WriteString(msg.Body)
+
+	// Handle calendar attachment (iMIP)
+	if len(msg.CalendarData) > 0 {
+		boundary := generateBoundary()
+		method := msg.CalendarMethod
+		if method == "" {
+			method = "REQUEST"
+		}
+
+		content.WriteString(fmt.Sprintf("Content-Type: multipart/alternative; boundary=\"%s\"\r\n", boundary))
+		content.WriteString("\r\n")
+
+		// Text part
+		content.WriteString(fmt.Sprintf("--%s\r\n", boundary))
+		content.WriteString("Content-Type: text/plain; charset=utf-8\r\n")
+		content.WriteString("\r\n")
+		content.WriteString(msg.Body)
+		content.WriteString("\r\n")
+
+		// Calendar part (inline for mail clients)
+		content.WriteString(fmt.Sprintf("--%s\r\n", boundary))
+		content.WriteString(fmt.Sprintf("Content-Type: text/calendar; charset=utf-8; method=%s\r\n", method))
+		content.WriteString("\r\n")
+		content.WriteString(string(msg.CalendarData))
+		content.WriteString("\r\n")
+
+		// Calendar attachment (for download)
+		content.WriteString(fmt.Sprintf("--%s\r\n", boundary))
+		content.WriteString(fmt.Sprintf("Content-Type: application/ics; name=\"invite.ics\"\r\n"))
+		content.WriteString("Content-Disposition: attachment; filename=\"invite.ics\"\r\n")
+		content.WriteString("Content-Transfer-Encoding: base64\r\n")
+		content.WriteString("\r\n")
+		content.WriteString(base64.StdEncoding.EncodeToString(msg.CalendarData))
+		content.WriteString("\r\n")
+
+		content.WriteString(fmt.Sprintf("--%s--\r\n", boundary))
+	} else {
+		content.WriteString("Content-Type: text/plain; charset=utf-8\r\n")
+		content.WriteString("\r\n")
+		content.WriteString(msg.Body)
+	}
 
 	tlsConfig := &tls.Config{
 		ServerName:         c.host,
@@ -136,6 +189,13 @@ func (c *Client) Send(msg *Message) error {
 	}
 
 	return client.Quit()
+}
+
+// generateBoundary generates a random MIME boundary.
+func generateBoundary() string {
+	b := make([]byte, 16)
+	rand.Read(b)
+	return fmt.Sprintf("----=_Part_%x", b)
 }
 
 // TestConnection tests the SMTP connection.
