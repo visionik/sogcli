@@ -293,40 +293,9 @@ func (c *Client) ListTasks(ctx context.Context, calPath string, includeCompleted
 
 // GetTask retrieves a single task by UID.
 func (c *Client) GetTask(ctx context.Context, calPath, uid string) (*Task, error) {
-	query := &caldav.CalendarQuery{
-		CompRequest: caldav.CalendarCompRequest{
-			Name: "VCALENDAR",
-			Comps: []caldav.CalendarCompRequest{{
-				Name: "VTODO",
-			}},
-		},
-		CompFilter: caldav.CompFilter{
-			Name: "VCALENDAR",
-			Comps: []caldav.CompFilter{{
-				Name: "VTODO",
-				Props: []caldav.PropFilter{{
-					Name:      "UID",
-					TextMatch: &caldav.TextMatch{Text: uid},
-				}},
-			}},
-		},
-	}
-
-	objects, err := c.client.QueryCalendar(ctx, calPath, query)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query task: %w", err)
-	}
-
-	if len(objects) == 0 {
-		return nil, fmt.Errorf("task not found: %s", uid)
-	}
-
-	task, err := parseICalTask(objects[0].Data)
-	if err != nil {
-		return nil, err
-	}
-	task.ETag = objects[0].ETag
-	return task, nil
+	// Use findTaskByUID which iterates through all tasks
+	// This is more compatible with various CalDAV servers
+	return c.findTaskByUID(ctx, calPath, uid)
 }
 
 // CreateTask creates a new task.
@@ -360,7 +329,7 @@ func (c *Client) DeleteTask(ctx context.Context, calPath, uid string) error {
 
 // CompleteTask marks a task as completed.
 func (c *Client) CompleteTask(ctx context.Context, calPath, uid string) error {
-	task, err := c.GetTask(ctx, calPath, uid)
+	task, err := c.findTaskByUID(ctx, calPath, uid)
 	if err != nil {
 		return err
 	}
@@ -372,7 +341,7 @@ func (c *Client) CompleteTask(ctx context.Context, calPath, uid string) error {
 
 // UncompleteTask marks a task as not completed.
 func (c *Client) UncompleteTask(ctx context.Context, calPath, uid string) error {
-	task, err := c.GetTask(ctx, calPath, uid)
+	task, err := c.findTaskByUID(ctx, calPath, uid)
 	if err != nil {
 		return err
 	}
@@ -380,6 +349,21 @@ func (c *Client) UncompleteTask(ctx context.Context, calPath, uid string) error 
 	task.Completed = time.Time{}
 	task.Percent = 0
 	return c.UpdateTask(ctx, calPath, task)
+}
+
+// findTaskByUID finds a task by iterating through all tasks.
+// This is a workaround for servers that don't support PropFilter well.
+func (c *Client) findTaskByUID(ctx context.Context, calPath, uid string) (*Task, error) {
+	tasks, err := c.ListTasks(ctx, calPath, true)
+	if err != nil {
+		return nil, err
+	}
+	for _, t := range tasks {
+		if t.UID == uid {
+			return &t, nil
+		}
+	}
+	return nil, fmt.Errorf("task not found: %s", uid)
 }
 
 // parseICalEvent parses an iCalendar VEVENT into an Event.
