@@ -23,6 +23,7 @@ type Root struct {
 	Mail     MailCmd     `cmd:"" aliases:"m" help:"Read and send mail"`
 	Cal      CalCmd      `cmd:"" aliases:"c" help:"Calendar operations (CalDAV)"`
 	Contacts ContactsCmd `cmd:"" aliases:"con" help:"Contact operations (CardDAV)"`
+	Tasks    TasksCmd    `cmd:"" aliases:"t" help:"Task operations (CalDAV VTODO)"`
 	Folders  FoldersCmd  `cmd:"" aliases:"f" help:"Manage folders"`
 	Drafts   DraftsCmd   `cmd:"" aliases:"d" help:"Manage drafts"`
 	Idle     IdleCmd     `cmd:"" help:"Watch for new mail (IMAP IDLE)"`
