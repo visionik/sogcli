@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-01-24
+
+### Changed
+- Complete README rewrite to match mog style
+- Comprehensive command reference with aliases
+- gog/mog compatibility table
+- Better organized documentation
+
+### Added
+- SKILL.md for Clawdbot integration
+
 ## [0.2.0] - 2026-01-24
 
 ### Changed
@@ -119,5 +130,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fastmail (full support)
 - Works with any standards-compliant provider
 
+[0.3.0]: https://github.com/visionik/sogcli/releases/tag/v0.3.0
 [0.2.0]: https://github.com/visionik/sogcli/releases/tag/v0.2.0
 [0.1.0]: https://github.com/visionik/sogcli/releases/tag/v0.1.0
