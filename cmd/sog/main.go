@@ -15,6 +15,14 @@ import (
 var version = "dev"
 
 func main() {
+	// Handle --ai-help before kong parsing
+	for _, arg := range os.Args[1:] {
+		if arg == "--ai-help" || arg == "-ai-help" {
+			fmt.Println(cli.AIHelpText)
+			os.Exit(0)
+		}
+	}
+
 	var root cli.Root
 	ctx := kong.Parse(&root,
 		kong.Name("sog"),
@@ -23,6 +31,10 @@ func main() {
 		kong.Vars{
 			"version": version,
 		},
+		kong.PostBuild(func(k *kong.Kong) error {
+			// Add --ai-help to the help text manually
+			return nil
+		}),
 	)
 
 	err := ctx.Run(&root)
