@@ -19,13 +19,14 @@ type Root struct {
 	Version VersionFlag `name:"version" help:"Print version and exit"`
 
 	// Subcommands
-	Auth    AuthCmd    `cmd:"" help:"Manage accounts"`
-	Mail    MailCmd    `cmd:"" aliases:"m" help:"Read and send mail"`
-	Cal     CalCmd     `cmd:"" aliases:"c" help:"Calendar operations (CalDAV)"`
-	Folders FoldersCmd `cmd:"" aliases:"f" help:"Manage folders"`
-	Drafts  DraftsCmd  `cmd:"" aliases:"d" help:"Manage drafts"`
-	Idle    IdleCmd    `cmd:"" help:"Watch for new mail (IMAP IDLE)"`
-	AIHelp  AIHelpCmd  `cmd:"" name:"ai-help" help:"Show detailed help for AI/LLM agents"`
+	Auth     AuthCmd     `cmd:"" help:"Manage accounts"`
+	Mail     MailCmd     `cmd:"" aliases:"m" help:"Read and send mail"`
+	Cal      CalCmd      `cmd:"" aliases:"c" help:"Calendar operations (CalDAV)"`
+	Contacts ContactsCmd `cmd:"" aliases:"con" help:"Contact operations (CardDAV)"`
+	Folders  FoldersCmd  `cmd:"" aliases:"f" help:"Manage folders"`
+	Drafts   DraftsCmd   `cmd:"" aliases:"d" help:"Manage drafts"`
+	Idle     IdleCmd     `cmd:"" help:"Watch for new mail (IMAP IDLE)"`
+	AIHelp   AIHelpCmd   `cmd:"" name:"ai-help" help:"Show detailed help for AI/LLM agents"`
 }
 
 // VersionFlag handles --version.

@@ -26,6 +26,7 @@ type AuthAddCmd struct {
 	SMTPHost   string `help:"SMTP server hostname" name:"smtp-host"`
 	SMTPPort   int    `help:"SMTP server port" name:"smtp-port" default:"587"`
 	CalDAVURL  string `help:"CalDAV server URL (e.g., https://caldav.example.com/)" name:"caldav-url"`
+	CardDAVURL string `help:"CardDAV server URL (e.g., https://carddav.example.com/)" name:"carddav-url"`
 	Password   string `help:"Password (will prompt if not provided)"`
 	Discover   bool   `help:"Auto-discover servers from DNS"`
 	Insecure   bool   `help:"Skip TLS certificate verification"`
@@ -91,6 +92,9 @@ func (c *AuthAddCmd) Run(root *Root) error {
 		CalDAV: config.CalDAVConfig{
 			URL: c.CalDAVURL,
 		},
+		CardDAV: config.CardDAVConfig{
+			URL: c.CardDAVURL,
+		},
 	}
 
 	if err := cfg.AddAccount(acct, c.Password); err != nil {
@@ -122,15 +126,18 @@ func (c *AuthListCmd) Run(root *Root) error {
 		if acct.Email == cfg.DefaultAccount {
 			marker = "* "
 		}
-		caldavInfo := ""
+		extras := ""
 		if acct.CalDAV.URL != "" {
-			caldavInfo = fmt.Sprintf(", CalDAV: %s", acct.CalDAV.URL)
+			extras += ", CalDAV: ✓"
+		}
+		if acct.CardDAV.URL != "" {
+			extras += ", CardDAV: ✓"
 		}
 		fmt.Printf("%s%s (IMAP: %s:%d, SMTP: %s:%d%s)\n",
 			marker, acct.Email,
 			acct.IMAP.Host, acct.IMAP.Port,
 			acct.SMTP.Host, acct.SMTP.Port,
-			caldavInfo)
+			extras)
 	}
 
 	return nil
