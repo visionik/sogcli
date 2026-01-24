@@ -19,15 +19,16 @@ type AuthCmd struct {
 
 // AuthAddCmd adds a new account.
 type AuthAddCmd struct {
-	Email    string `arg:"" help:"Email address for the account"`
-	IMAPHost string `help:"IMAP server hostname" name:"imap-host"`
-	IMAPPort int    `help:"IMAP server port" name:"imap-port" default:"993"`
-	SMTPHost string `help:"SMTP server hostname" name:"smtp-host"`
-	SMTPPort int    `help:"SMTP server port" name:"smtp-port" default:"587"`
-	Password string `help:"Password (will prompt if not provided)"`
-	Discover bool   `help:"Auto-discover servers from DNS"`
-	Insecure bool   `help:"Skip TLS certificate verification"`
-	NoTLS    bool   `help:"Disable TLS (plain text connection)" name:"no-tls"`
+	Email      string `arg:"" help:"Email address for the account"`
+	IMAPHost   string `help:"IMAP server hostname" name:"imap-host"`
+	IMAPPort   int    `help:"IMAP server port" name:"imap-port" default:"993"`
+	SMTPHost   string `help:"SMTP server hostname" name:"smtp-host"`
+	SMTPPort   int    `help:"SMTP server port" name:"smtp-port" default:"587"`
+	CalDAVURL  string `help:"CalDAV server URL (e.g., https://caldav.example.com/)" name:"caldav-url"`
+	Password   string `help:"Password (will prompt if not provided)"`
+	Discover   bool   `help:"Auto-discover servers from DNS"`
+	Insecure   bool   `help:"Skip TLS certificate verification"`
+	NoTLS      bool   `help:"Disable TLS (plain text connection)" name:"no-tls"`
 }
 
 // Run executes the auth add command.
@@ -86,6 +87,9 @@ func (c *AuthAddCmd) Run(root *Root) error {
 			Insecure: c.Insecure,
 			NoTLS:    c.NoTLS,
 		},
+		CalDAV: config.CalDAVConfig{
+			URL: c.CalDAVURL,
+		},
 	}
 
 	if err := cfg.AddAccount(acct, c.Password); err != nil {
@@ -117,10 +121,15 @@ func (c *AuthListCmd) Run(root *Root) error {
 		if acct.Email == cfg.DefaultAccount {
 			marker = "* "
 		}
-		fmt.Printf("%s%s (IMAP: %s:%d, SMTP: %s:%d)\n",
+		caldavInfo := ""
+		if acct.CalDAV.URL != "" {
+			caldavInfo = fmt.Sprintf(", CalDAV: %s", acct.CalDAV.URL)
+		}
+		fmt.Printf("%s%s (IMAP: %s:%d, SMTP: %s:%d%s)\n",
 			marker, acct.Email,
 			acct.IMAP.Host, acct.IMAP.Port,
-			acct.SMTP.Host, acct.SMTP.Port)
+			acct.SMTP.Host, acct.SMTP.Port,
+			caldavInfo)
 	}
 
 	return nil

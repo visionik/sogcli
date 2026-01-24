@@ -21,6 +21,7 @@ type Root struct {
 	// Subcommands
 	Auth    AuthCmd    `cmd:"" help:"Manage accounts"`
 	Mail    MailCmd    `cmd:"" aliases:"m" help:"Read and send mail"`
+	Cal     CalCmd     `cmd:"" aliases:"c" help:"Calendar operations (CalDAV)"`
 	Folders FoldersCmd `cmd:"" aliases:"f" help:"Manage folders"`
 	Drafts  DraftsCmd  `cmd:"" aliases:"d" help:"Manage drafts"`
 	Idle    IdleCmd    `cmd:"" help:"Watch for new mail (IMAP IDLE)"`

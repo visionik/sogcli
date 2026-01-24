@@ -17,9 +17,16 @@ type Config struct {
 
 // Account holds configuration for a mail account.
 type Account struct {
-	Email string       `json:"email"`
-	IMAP  ServerConfig `json:"imap"`
-	SMTP  ServerConfig `json:"smtp"`
+	Email  string        `json:"email"`
+	IMAP   ServerConfig  `json:"imap"`
+	SMTP   ServerConfig  `json:"smtp"`
+	CalDAV CalDAVConfig  `json:"caldav,omitempty"`
+}
+
+// CalDAVConfig holds CalDAV server configuration.
+type CalDAVConfig struct {
+	URL             string `json:"url,omitempty"`
+	DefaultCalendar string `json:"default_calendar,omitempty"`
 }
 
 // ServerConfig holds server connection details.
