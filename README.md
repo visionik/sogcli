@@ -44,12 +44,6 @@ sog invite send "Project Kickoff" user@example.com --start "2024-01-25T10:00"
 
 ## Installation
 
-### Homebrew (coming soon)
-
-```bash
-brew install visionik/tap/sog
-```
-
 ### From Source
 
 ```bash
@@ -108,6 +102,7 @@ Passwords are stored securely in your system keychain.
 ### Global Flags
 
 ```
+--ai-help        Detailed help for AI/LLM agents
 --account, -a    Account to use
 --json           JSON output (for scripting)
 --plain          TSV output (parseable)
@@ -121,11 +116,8 @@ Passwords are stored securely in your system keychain.
 | Provider | IMAP/SMTP | CalDAV | CardDAV | WebDAV |
 |----------|-----------|--------|---------|--------|
 | **Fastmail** | ✅ | ✅ | ✅ | ✅ |
-| **iCloud** | ✅ | ✅ | ✅ | — |
-| **Proton Mail** | ✅ | ✅ | ✅ | — |
-| **Mailbox.org** | ✅ | ✅ | ✅ | ✅ |
-| **Zoho** | ✅ | ✅ | ✅ | — |
-| **Self-hosted** | ✅ | ✅ | ✅ | ✅ |
+
+*Other standards-compliant providers should work but have not been tested yet.*
 
 ## Comparison with gog/mog
 
@@ -146,12 +138,12 @@ Passwords are stored securely in your system keychain.
 sog is designed for AI agents and automation:
 
 ```bash
+# Detailed help for AI agents
+sog --ai-help
+
 # Structured output
 sog mail list --json
 sog cal today --json
-
-# Detailed help for agents
-sog ai-help
 ```
 
 ## License
