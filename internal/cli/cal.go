@@ -12,11 +12,13 @@ import (
 
 // CalCmd handles calendar operations.
 type CalCmd struct {
-	List      CalListCmd      `cmd:"" help:"List events"`
-	Get       CalGetCmd       `cmd:"" help:"Get event details"`
+	List      CalListCmd      `cmd:"" aliases:"events" help:"List events"`
+	Get       CalGetCmd       `cmd:"" aliases:"event" help:"Get event details"`
+	Search    CalSearchCmd    `cmd:"" help:"Search events"`
 	Today     CalTodayCmd     `cmd:"" help:"Today's events"`
 	Week      CalWeekCmd      `cmd:"" help:"This week's events"`
 	Create    CalCreateCmd    `cmd:"" help:"Create an event"`
+	Update    CalUpdateCmd    `cmd:"" help:"Update an event"`
 	Delete    CalDeleteCmd    `cmd:"" help:"Delete an event"`
 	Calendars CalCalendarsCmd `cmd:"" help:"List calendars"`
 }
@@ -134,6 +136,68 @@ func (c *CalGetCmd) Run(root *Root) error {
 	return outputEventDetail(event)
 }
 
+// CalSearchCmd searches events.
+type CalSearchCmd struct {
+	Query    string `arg:"" help:"Search query (matches title, description, location)"`
+	Calendar string `help:"Calendar path (default: primary)"`
+	From     string `help:"Start date" default:"today"`
+	To       string `help:"End date" default:"+365d"`
+	Max      int    `help:"Maximum results" default:"50"`
+}
+
+// Run executes the cal search command.
+func (c *CalSearchCmd) Run(root *Root) error {
+	client, calPath, err := getCalDAVClient(root)
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+
+	if c.Calendar != "" {
+		calPath = c.Calendar
+	}
+
+	from, err := parseDate(c.From)
+	if err != nil {
+		return fmt.Errorf("invalid --from: %w", err)
+	}
+	to, err := parseDate(c.To)
+	if err != nil {
+		return fmt.Errorf("invalid --to: %w", err)
+	}
+
+	ctx := context.Background()
+	events, err := client.ListEvents(ctx, calPath, from, to)
+	if err != nil {
+		return fmt.Errorf("failed to list events: %w", err)
+	}
+
+	// Filter by query
+	query := strings.ToLower(c.Query)
+	var matches []caldav.Event
+	for _, e := range events {
+		if strings.Contains(strings.ToLower(e.Summary), query) ||
+			strings.Contains(strings.ToLower(e.Description), query) ||
+			strings.Contains(strings.ToLower(e.Location), query) {
+			matches = append(matches, e)
+			if len(matches) >= c.Max {
+				break
+			}
+		}
+	}
+
+	if len(matches) == 0 {
+		fmt.Println("No matching events found.")
+		return nil
+	}
+
+	if root.JSON {
+		return outputEventsJSON(matches)
+	}
+
+	return outputEventsTable(matches)
+}
+
 // CalCreateCmd creates an event.
 type CalCreateCmd struct {
 	Title       string   `arg:"" help:"Event title"`
@@ -202,6 +266,69 @@ func (c *CalCreateCmd) Run(root *Root) error {
 	}
 
 	fmt.Printf("Created event: %s (%s)\n", event.Summary, event.UID)
+	return nil
+}
+
+// CalUpdateCmd updates an event.
+type CalUpdateCmd struct {
+	UID         string `arg:"" help:"Event UID"`
+	Title       string `help:"New title"`
+	Start       string `help:"New start time"`
+	End         string `help:"New end time"`
+	Location    string `help:"New location"`
+	Description string `help:"New description"`
+	Calendar    string `help:"Calendar path (default: primary)"`
+}
+
+// Run executes the cal update command.
+func (c *CalUpdateCmd) Run(root *Root) error {
+	client, calPath, err := getCalDAVClient(root)
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+
+	if c.Calendar != "" {
+		calPath = c.Calendar
+	}
+
+	ctx := context.Background()
+	event, err := client.GetEvent(ctx, calPath, c.UID)
+	if err != nil {
+		return fmt.Errorf("failed to get event: %w", err)
+	}
+
+	// Apply updates
+	if c.Title != "" {
+		event.Summary = c.Title
+	}
+	if c.Start != "" {
+		start, allDay, err := parseDateTime(c.Start)
+		if err != nil {
+			return fmt.Errorf("invalid --start: %w", err)
+		}
+		event.Start = start
+		event.AllDay = allDay
+	}
+	if c.End != "" {
+		end, _, err := parseDateTime(c.End)
+		if err != nil {
+			return fmt.Errorf("invalid --end: %w", err)
+		}
+		event.End = end
+	}
+	if c.Location != "" {
+		event.Location = c.Location
+	}
+	if c.Description != "" {
+		event.Description = c.Description
+	}
+
+	if err := client.UpdateEvent(ctx, calPath, event); err != nil {
+		return fmt.Errorf("failed to update event: %w", err)
+	}
+
+	fmt.Printf("Updated event: %s\n", c.UID)
 	return nil
 }
 

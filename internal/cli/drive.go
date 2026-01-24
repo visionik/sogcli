@@ -3,10 +3,8 @@ package cli
 import (
 	"context"
 	"fmt"
-	"io"
 	"os"
 	"path"
-	"strings"
 
 	"github.com/visionik/sogcli/internal/config"
 	"github.com/visionik/sogcli/internal/webdav"
@@ -14,15 +12,15 @@ import (
 
 // DriveCmd handles file operations.
 type DriveCmd struct {
-	List   DriveListCmd   `cmd:"" aliases:"ls" help:"List files and folders"`
-	Get    DriveGetCmd    `cmd:"" aliases:"download" help:"Download a file"`
-	Put    DrivePutCmd    `cmd:"" aliases:"upload" help:"Upload a file"`
-	Mkdir  DriveMkdirCmd  `cmd:"" help:"Create a directory"`
-	Rm     DriveRmCmd     `cmd:"" aliases:"delete" help:"Delete a file or directory"`
-	Mv     DriveMvCmd     `cmd:"" aliases:"move,rename" help:"Move or rename a file"`
-	Cp     DriveCpCmd     `cmd:"" aliases:"copy" help:"Copy a file"`
-	Info   DriveInfoCmd   `cmd:"" aliases:"stat" help:"Get file/folder info"`
-	Cat    DriveCatCmd    `cmd:"" help:"Output file contents to stdout"`
+	Ls       DriveListCmd     `cmd:"" aliases:"list" help:"List files and folders"`
+	Get      DriveGetCmd      `cmd:"" aliases:"stat,info" help:"Get file/folder metadata"`
+	Download DriveDownloadCmd `cmd:"" help:"Download a file"`
+	Upload   DriveUploadCmd   `cmd:"" aliases:"put" help:"Upload a file"`
+	Mkdir    DriveMkdirCmd    `cmd:"" help:"Create a directory"`
+	Delete   DriveDeleteCmd   `cmd:"" aliases:"rm,del" help:"Delete a file or directory"`
+	Move     DriveMoveCmd     `cmd:"" aliases:"mv,rename" help:"Move or rename a file"`
+	Copy     DriveCopyCmd     `cmd:"" aliases:"cp" help:"Copy a file"`
+	Cat      DriveCatCmd      `cmd:"" help:"Output file contents to stdout"`
 }
 
 // DriveListCmd lists files.
@@ -32,7 +30,7 @@ type DriveListCmd struct {
 	All  bool   `help:"Show hidden files"`
 }
 
-// Run executes the drive list command.
+// Run executes the drive ls command.
 func (c *DriveListCmd) Run(root *Root) error {
 	client, err := getWebDAVClient(root)
 	if err != nil {
@@ -73,14 +71,55 @@ func (c *DriveListCmd) Run(root *Root) error {
 	return outputFilesShort(files)
 }
 
-// DriveGetCmd downloads a file.
+// DriveGetCmd gets file metadata (like gog drive get).
 type DriveGetCmd struct {
-	Remote string `arg:"" help:"Remote file path"`
-	Local  string `arg:"" optional:"" help:"Local path (default: current dir with same name)"`
+	Path string `arg:"" help:"Path to inspect"`
 }
 
 // Run executes the drive get command.
 func (c *DriveGetCmd) Run(root *Root) error {
+	client, err := getWebDAVClient(root)
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+
+	ctx := context.Background()
+	info, err := client.Stat(ctx, c.Path)
+	if err != nil {
+		return fmt.Errorf("failed to get info: %w", err)
+	}
+
+	if root.JSON {
+		return outputFilesJSON([]webdav.FileInfo{*info})
+	}
+
+	fmt.Printf("Path:     %s\n", info.Path)
+	fmt.Printf("Name:     %s\n", info.Name)
+	fmt.Printf("Type:     %s\n", fileType(info))
+	if !info.IsDir {
+		fmt.Printf("Size:     %s (%d bytes)\n", webdav.FormatSize(info.Size), info.Size)
+	}
+	if info.ContentType != "" {
+		fmt.Printf("MIME:     %s\n", info.ContentType)
+	}
+	if !info.Modified.IsZero() {
+		fmt.Printf("Modified: %s\n", info.Modified.Format("2006-01-02 15:04:05"))
+	}
+	if info.ETag != "" {
+		fmt.Printf("ETag:     %s\n", info.ETag)
+	}
+	return nil
+}
+
+// DriveDownloadCmd downloads a file.
+type DriveDownloadCmd struct {
+	Remote string `arg:"" help:"Remote file path"`
+	Local  string `arg:"" optional:"" help:"Local path (default: current dir with same name)"`
+}
+
+// Run executes the drive download command.
+func (c *DriveDownloadCmd) Run(root *Root) error {
 	client, err := getWebDAVClient(root)
 	if err != nil {
 		return err
@@ -101,14 +140,14 @@ func (c *DriveGetCmd) Run(root *Root) error {
 	return nil
 }
 
-// DrivePutCmd uploads a file.
-type DrivePutCmd struct {
+// DriveUploadCmd uploads a file.
+type DriveUploadCmd struct {
 	Local  string `arg:"" help:"Local file path"`
 	Remote string `arg:"" optional:"" help:"Remote path (default: / with same name)"`
 }
 
-// Run executes the drive put command.
-func (c *DrivePutCmd) Run(root *Root) error {
+// Run executes the drive upload command.
+func (c *DriveUploadCmd) Run(root *Root) error {
 	client, err := getWebDAVClient(root)
 	if err != nil {
 		return err
@@ -151,13 +190,13 @@ func (c *DriveMkdirCmd) Run(root *Root) error {
 	return nil
 }
 
-// DriveRmCmd deletes a file or directory.
-type DriveRmCmd struct {
+// DriveDeleteCmd deletes a file or directory.
+type DriveDeleteCmd struct {
 	Path string `arg:"" help:"Path to delete"`
 }
 
-// Run executes the drive rm command.
-func (c *DriveRmCmd) Run(root *Root) error {
+// Run executes the drive delete command.
+func (c *DriveDeleteCmd) Run(root *Root) error {
 	client, err := getWebDAVClient(root)
 	if err != nil {
 		return err
@@ -173,14 +212,14 @@ func (c *DriveRmCmd) Run(root *Root) error {
 	return nil
 }
 
-// DriveMvCmd moves/renames a file.
-type DriveMvCmd struct {
+// DriveMoveCmd moves/renames a file.
+type DriveMoveCmd struct {
 	Src string `arg:"" help:"Source path"`
 	Dst string `arg:"" help:"Destination path"`
 }
 
-// Run executes the drive mv command.
-func (c *DriveMvCmd) Run(root *Root) error {
+// Run executes the drive move command.
+func (c *DriveMoveCmd) Run(root *Root) error {
 	client, err := getWebDAVClient(root)
 	if err != nil {
 		return err
@@ -196,14 +235,14 @@ func (c *DriveMvCmd) Run(root *Root) error {
 	return nil
 }
 
-// DriveCpCmd copies a file.
-type DriveCpCmd struct {
+// DriveCopyCmd copies a file.
+type DriveCopyCmd struct {
 	Src string `arg:"" help:"Source path"`
 	Dst string `arg:"" help:"Destination path"`
 }
 
-// Run executes the drive cp command.
-func (c *DriveCpCmd) Run(root *Root) error {
+// Run executes the drive copy command.
+func (c *DriveCopyCmd) Run(root *Root) error {
 	client, err := getWebDAVClient(root)
 	if err != nil {
 		return err
@@ -216,47 +255,6 @@ func (c *DriveCpCmd) Run(root *Root) error {
 	}
 
 	fmt.Printf("Copied: %s -> %s\n", c.Src, c.Dst)
-	return nil
-}
-
-// DriveInfoCmd gets file info.
-type DriveInfoCmd struct {
-	Path string `arg:"" help:"Path to inspect"`
-}
-
-// Run executes the drive info command.
-func (c *DriveInfoCmd) Run(root *Root) error {
-	client, err := getWebDAVClient(root)
-	if err != nil {
-		return err
-	}
-	defer client.Close()
-
-	ctx := context.Background()
-	info, err := client.Stat(ctx, c.Path)
-	if err != nil {
-		return fmt.Errorf("failed to get info: %w", err)
-	}
-
-	if root.JSON {
-		return outputFilesJSON([]webdav.FileInfo{*info})
-	}
-
-	fmt.Printf("Path:     %s\n", info.Path)
-	fmt.Printf("Name:     %s\n", info.Name)
-	fmt.Printf("Type:     %s\n", fileType(info))
-	if !info.IsDir {
-		fmt.Printf("Size:     %s (%d bytes)\n", webdav.FormatSize(info.Size), info.Size)
-	}
-	if info.ContentType != "" {
-		fmt.Printf("MIME:     %s\n", info.ContentType)
-	}
-	if !info.Modified.IsZero() {
-		fmt.Printf("Modified: %s\n", info.Modified.Format("2006-01-02 15:04:05"))
-	}
-	if info.ETag != "" {
-		fmt.Printf("ETag:     %s\n", info.ETag)
-	}
 	return nil
 }
 
@@ -378,7 +376,3 @@ func outputFilesLong(files []webdav.FileInfo) error {
 	}
 	return nil
 }
-
-// Ensure io is used
-var _ = io.EOF
-var _ = strings.TrimSpace

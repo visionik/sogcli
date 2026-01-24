@@ -12,12 +12,13 @@ import (
 
 // ContactsCmd handles contact operations.
 type ContactsCmd struct {
-	List       ContactsListCmd       `cmd:"" help:"List contacts"`
-	Get        ContactsGetCmd        `cmd:"" help:"Get contact details"`
-	Search     ContactsSearchCmd     `cmd:"" help:"Search contacts"`
-	Create     ContactsCreateCmd     `cmd:"" help:"Create a contact"`
-	Delete     ContactsDeleteCmd     `cmd:"" help:"Delete a contact"`
-	Books      ContactsBooksCmd      `cmd:"" name:"books" help:"List address books"`
+	List   ContactsListCmd   `cmd:"" help:"List contacts"`
+	Get    ContactsGetCmd    `cmd:"" help:"Get contact details"`
+	Search ContactsSearchCmd `cmd:"" help:"Search contacts"`
+	Create ContactsCreateCmd `cmd:"" help:"Create a contact"`
+	Update ContactsUpdateCmd `cmd:"" help:"Update a contact"`
+	Delete ContactsDeleteCmd `cmd:"" help:"Delete a contact"`
+	Books  ContactsBooksCmd  `cmd:"" name:"books" help:"List address books"`
 }
 
 // ContactsListCmd lists contacts in an address book.
@@ -176,6 +177,65 @@ func (c *ContactsCreateCmd) Run(root *Root) error {
 	}
 
 	fmt.Printf("Created contact: %s (%s)\n", contact.FullName, contact.UID)
+	return nil
+}
+
+// ContactsUpdateCmd updates a contact.
+type ContactsUpdateCmd struct {
+	UID         string   `arg:"" help:"Contact UID"`
+	Name        string   `help:"Full name"`
+	Email       []string `help:"Email addresses (replaces existing)" short:"e"`
+	Phone       []string `help:"Phone numbers (replaces existing)" short:"p"`
+	Org         string   `help:"Organization"`
+	Title       string   `help:"Job title"`
+	Note        string   `help:"Note"`
+	AddressBook string   `help:"Address book path (default: primary)"`
+}
+
+// Run executes the contacts update command.
+func (c *ContactsUpdateCmd) Run(root *Root) error {
+	client, bookPath, err := getCardDAVClient(root)
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+
+	if c.AddressBook != "" {
+		bookPath = c.AddressBook
+	}
+
+	ctx := context.Background()
+	contact, err := client.GetContact(ctx, bookPath, c.UID)
+	if err != nil {
+		return fmt.Errorf("failed to get contact: %w", err)
+	}
+
+	// Apply updates
+	if c.Name != "" {
+		contact.FullName = c.Name
+		contact.FirstName, contact.LastName = parseName(c.Name)
+	}
+	if len(c.Email) > 0 {
+		contact.Emails = c.Email
+	}
+	if len(c.Phone) > 0 {
+		contact.Phones = c.Phone
+	}
+	if c.Org != "" {
+		contact.Org = c.Org
+	}
+	if c.Title != "" {
+		contact.Title = c.Title
+	}
+	if c.Note != "" {
+		contact.Note = c.Note
+	}
+
+	if err := client.UpdateContact(ctx, bookPath, contact); err != nil {
+		return fmt.Errorf("failed to update contact: %w", err)
+	}
+
+	fmt.Printf("Updated contact: %s\n", c.UID)
 	return nil
 }
 

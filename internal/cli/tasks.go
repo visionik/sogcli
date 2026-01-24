@@ -12,11 +12,13 @@ import (
 // TasksCmd handles task operations.
 type TasksCmd struct {
 	List    TasksListCmd    `cmd:"" help:"List tasks"`
-	Add     TasksAddCmd     `cmd:"" help:"Add a task"`
+	Add     TasksAddCmd     `cmd:"" aliases:"create" help:"Add a task"`
 	Get     TasksGetCmd     `cmd:"" help:"Get task details"`
-	Done    TasksDoneCmd    `cmd:"" help:"Mark task as complete"`
-	Undone  TasksUndoneCmd  `cmd:"" help:"Mark task as incomplete"`
-	Delete  TasksDeleteCmd  `cmd:"" help:"Delete a task"`
+	Update  TasksUpdateCmd  `cmd:"" help:"Update a task"`
+	Done    TasksDoneCmd    `cmd:"" aliases:"complete" help:"Mark task as complete"`
+	Undo    TasksUndoCmd    `cmd:"" aliases:"uncomplete,undone" help:"Mark task as incomplete"`
+	Delete  TasksDeleteCmd  `cmd:"" aliases:"rm,del" help:"Delete a task"`
+	Clear   TasksClearCmd   `cmd:"" help:"Clear completed tasks"`
 	Due     TasksDueCmd     `cmd:"" help:"Tasks due by date"`
 	Overdue TasksOverdueCmd `cmd:"" help:"Overdue tasks"`
 	Lists   TasksListsCmd   `cmd:"" help:"List task lists (calendars)"`
@@ -148,6 +150,60 @@ func (c *TasksGetCmd) Run(root *Root) error {
 	return outputTaskDetail(task)
 }
 
+// TasksUpdateCmd updates a task.
+type TasksUpdateCmd struct {
+	UID         string `arg:"" help:"Task UID"`
+	Title       string `help:"New title"`
+	Due         string `help:"New due date (YYYY-MM-DD)"`
+	Priority    int    `help:"New priority (1-9)" short:"p"`
+	Description string `help:"New description" short:"d"`
+	List        string `help:"Task list path (default: primary)"`
+}
+
+// Run executes the tasks update command.
+func (c *TasksUpdateCmd) Run(root *Root) error {
+	client, listPath, err := getCalDAVClientForTasks(root)
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+
+	if c.List != "" {
+		listPath = c.List
+	}
+
+	ctx := context.Background()
+	task, err := client.GetTask(ctx, listPath, c.UID)
+	if err != nil {
+		return fmt.Errorf("failed to get task: %w", err)
+	}
+
+	// Apply updates
+	if c.Title != "" {
+		task.Summary = c.Title
+	}
+	if c.Due != "" {
+		due, err := parseTaskDate(c.Due)
+		if err != nil {
+			return fmt.Errorf("invalid --due: %w", err)
+		}
+		task.Due = due
+	}
+	if c.Priority > 0 {
+		task.Priority = c.Priority
+	}
+	if c.Description != "" {
+		task.Description = c.Description
+	}
+
+	if err := client.UpdateTask(ctx, listPath, task); err != nil {
+		return fmt.Errorf("failed to update task: %w", err)
+	}
+
+	fmt.Printf("Updated task: %s\n", c.UID)
+	return nil
+}
+
 // TasksDoneCmd marks a task as complete.
 type TasksDoneCmd struct {
 	UID  string `arg:"" help:"Task UID"`
@@ -175,14 +231,14 @@ func (c *TasksDoneCmd) Run(root *Root) error {
 	return nil
 }
 
-// TasksUndoneCmd marks a task as incomplete.
-type TasksUndoneCmd struct {
+// TasksUndoCmd marks a task as incomplete.
+type TasksUndoCmd struct {
 	UID  string `arg:"" help:"Task UID"`
 	List string `help:"Task list path (default: primary)"`
 }
 
-// Run executes the tasks undone command.
-func (c *TasksUndoneCmd) Run(root *Root) error {
+// Run executes the tasks undo command.
+func (c *TasksUndoCmd) Run(root *Root) error {
 	client, listPath, err := getCalDAVClientForTasks(root)
 	if err != nil {
 		return err
@@ -226,6 +282,44 @@ func (c *TasksDeleteCmd) Run(root *Root) error {
 	}
 
 	fmt.Printf("Deleted task: %s\n", c.UID)
+	return nil
+}
+
+// TasksClearCmd clears completed tasks.
+type TasksClearCmd struct {
+	List string `help:"Task list path (default: primary)"`
+}
+
+// Run executes the tasks clear command.
+func (c *TasksClearCmd) Run(root *Root) error {
+	client, listPath, err := getCalDAVClientForTasks(root)
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+
+	if c.List != "" {
+		listPath = c.List
+	}
+
+	ctx := context.Background()
+	tasks, err := client.ListTasks(ctx, listPath, true) // include completed
+	if err != nil {
+		return fmt.Errorf("failed to list tasks: %w", err)
+	}
+
+	count := 0
+	for _, t := range tasks {
+		if t.Status == caldav.TaskStatusCompleted {
+			if err := client.DeleteTask(ctx, listPath, t.UID); err != nil {
+				fmt.Printf("Failed to delete %s: %v\n", t.UID, err)
+				continue
+			}
+			count++
+		}
+	}
+
+	fmt.Printf("Cleared %d completed tasks\n", count)
 	return nil
 }
 
