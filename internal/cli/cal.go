@@ -289,7 +289,7 @@ func getCalDAVClient(root *Root) (*caldav.Client, string, error) {
 		return nil, "", fmt.Errorf("no CalDAV URL configured for %s. Run: sog auth add %s --caldav-url <url>", email, email)
 	}
 
-	password, err := cfg.GetPassword(email)
+	password, err := cfg.GetPasswordForProtocol(email, config.ProtocolCalDAV)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to get password: %w", err)
 	}

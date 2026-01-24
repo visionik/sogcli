@@ -171,3 +171,9 @@ func (c *Config) RemoveAccount(email string) error {
 func (c *Config) GetPassword(email string) (string, error) {
 	return GetPassword(email)
 }
+
+// GetPasswordForProtocol retrieves the password for an account and protocol.
+// Falls back to default password if no protocol-specific password is set.
+func (c *Config) GetPasswordForProtocol(email string, protocol Protocol) (string, error) {
+	return GetPasswordForProtocol(email, protocol)
+}

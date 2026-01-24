@@ -11,10 +11,11 @@ import (
 
 // AuthCmd handles account management.
 type AuthCmd struct {
-	Add    AuthAddCmd    `cmd:"" help:"Add an IMAP/SMTP account"`
-	List   AuthListCmd   `cmd:"" help:"List configured accounts"`
-	Test   AuthTestCmd   `cmd:"" help:"Test account connection"`
-	Remove AuthRemoveCmd `cmd:"" help:"Remove an account"`
+	Add      AuthAddCmd      `cmd:"" help:"Add an IMAP/SMTP account"`
+	List     AuthListCmd     `cmd:"" help:"List configured accounts"`
+	Test     AuthTestCmd     `cmd:"" help:"Test account connection"`
+	Remove   AuthRemoveCmd   `cmd:"" help:"Remove an account"`
+	Password AuthPasswordCmd `cmd:"" help:"Set protocol-specific passwords"`
 }
 
 // AuthAddCmd adds a new account.
@@ -229,5 +230,75 @@ func (c *AuthRemoveCmd) Run(root *Root) error {
 	}
 
 	fmt.Printf("Removed account: %s\n", c.Email)
+	return nil
+}
+
+// AuthPasswordCmd sets protocol-specific passwords.
+type AuthPasswordCmd struct {
+	Email   string `arg:"" help:"Account email"`
+	IMAP    string `help:"Password for IMAP" name:"imap"`
+	SMTP    string `help:"Password for SMTP" name:"smtp"`
+	CalDAV  string `help:"Password for CalDAV" name:"caldav"`
+	CardDAV string `help:"Password for CardDAV" name:"carddav"`
+	WebDAV  string `help:"Password for WebDAV" name:"webdav"`
+	Default string `help:"Default password (used when protocol-specific not set)" name:"default"`
+}
+
+// Run executes the auth password command.
+func (c *AuthPasswordCmd) Run(root *Root) error {
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
+	}
+
+	// Verify account exists
+	if _, err := cfg.GetAccount(c.Email); err != nil {
+		return err
+	}
+
+	var set []string
+
+	if c.Default != "" {
+		if err := config.SetPassword(c.Email, c.Default); err != nil {
+			return fmt.Errorf("failed to set default password: %w", err)
+		}
+		set = append(set, "default")
+	}
+	if c.IMAP != "" {
+		if err := config.SetPasswordForProtocol(c.Email, config.ProtocolIMAP, c.IMAP); err != nil {
+			return fmt.Errorf("failed to set IMAP password: %w", err)
+		}
+		set = append(set, "imap")
+	}
+	if c.SMTP != "" {
+		if err := config.SetPasswordForProtocol(c.Email, config.ProtocolSMTP, c.SMTP); err != nil {
+			return fmt.Errorf("failed to set SMTP password: %w", err)
+		}
+		set = append(set, "smtp")
+	}
+	if c.CalDAV != "" {
+		if err := config.SetPasswordForProtocol(c.Email, config.ProtocolCalDAV, c.CalDAV); err != nil {
+			return fmt.Errorf("failed to set CalDAV password: %w", err)
+		}
+		set = append(set, "caldav")
+	}
+	if c.CardDAV != "" {
+		if err := config.SetPasswordForProtocol(c.Email, config.ProtocolCardDAV, c.CardDAV); err != nil {
+			return fmt.Errorf("failed to set CardDAV password: %w", err)
+		}
+		set = append(set, "carddav")
+	}
+	if c.WebDAV != "" {
+		if err := config.SetPasswordForProtocol(c.Email, config.ProtocolWebDAV, c.WebDAV); err != nil {
+			return fmt.Errorf("failed to set WebDAV password: %w", err)
+		}
+		set = append(set, "webdav")
+	}
+
+	if len(set) == 0 {
+		return fmt.Errorf("no passwords specified. Use --default, --imap, --smtp, --caldav, --carddav, or --webdav")
+	}
+
+	fmt.Printf("Set passwords for %s: %v\n", c.Email, set)
 	return nil
 }
