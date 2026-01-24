@@ -1,0 +1,35 @@
+# Binaries
+sog
+sog-bin
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test artifacts
+*.test
+*.out
+coverage.out
+
+# Go workspace
+go.work
+go.work.sum
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Config (might contain credentials)
+config.json
+.sog/
+
+# Build artifacts
+dist/
+build/

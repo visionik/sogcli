@@ -9,6 +9,7 @@ import (
 // Root is the top-level CLI structure.
 type Root struct {
 	// Global flags (matching gog patterns)
+	AIHelp  bool        `name:"ai-help" help:"Show detailed help for AI/LLM agents"`
 	Account string      `help:"Account email to use" env:"SOG_ACCOUNT" short:"a"`
 	JSON    bool        `help:"Output JSON to stdout (best for scripting)" xor:"format"`
 	Plain   bool        `help:"Output stable, parseable text to stdout (TSV; no colors)" xor:"format"`
@@ -17,7 +18,6 @@ type Root struct {
 	NoInput bool        `help:"Never prompt; fail instead (useful for CI)" name:"no-input"`
 	Verbose bool        `help:"Enable verbose logging" short:"v"`
 	Version VersionFlag `name:"version" help:"Print version and exit"`
-	AIHelp  bool        `name:"ai-help" help:"Show detailed help for AI/LLM agents"`
 
 	// Subcommands
 	Auth     AuthCmd     `cmd:"" help:"Manage accounts"`
