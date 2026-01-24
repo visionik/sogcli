@@ -27,6 +27,7 @@ type AuthAddCmd struct {
 	SMTPPort   int    `help:"SMTP server port" name:"smtp-port" default:"587"`
 	CalDAVURL  string `help:"CalDAV server URL (e.g., https://caldav.example.com/)" name:"caldav-url"`
 	CardDAVURL string `help:"CardDAV server URL (e.g., https://carddav.example.com/)" name:"carddav-url"`
+	WebDAVURL  string `help:"WebDAV server URL (e.g., https://webdav.example.com/)" name:"webdav-url"`
 	Password   string `help:"Password (will prompt if not provided)"`
 	Discover   bool   `help:"Auto-discover servers from DNS"`
 	Insecure   bool   `help:"Skip TLS certificate verification"`
@@ -95,6 +96,9 @@ func (c *AuthAddCmd) Run(root *Root) error {
 		CardDAV: config.CardDAVConfig{
 			URL: c.CardDAVURL,
 		},
+		WebDAV: config.WebDAVConfig{
+			URL: c.WebDAVURL,
+		},
 	}
 
 	if err := cfg.AddAccount(acct, c.Password); err != nil {
@@ -132,6 +136,9 @@ func (c *AuthListCmd) Run(root *Root) error {
 		}
 		if acct.CardDAV.URL != "" {
 			extras += ", CardDAV: ✓"
+		}
+		if acct.WebDAV.URL != "" {
+			extras += ", WebDAV: ✓"
 		}
 		fmt.Printf("%s%s (IMAP: %s:%d, SMTP: %s:%d%s)\n",
 			marker, acct.Email,

@@ -22,6 +22,7 @@ type Account struct {
 	SMTP    ServerConfig  `json:"smtp"`
 	CalDAV  CalDAVConfig  `json:"caldav,omitempty"`
 	CardDAV CardDAVConfig `json:"carddav,omitempty"`
+	WebDAV  WebDAVConfig  `json:"webdav,omitempty"`
 }
 
 // CalDAVConfig holds CalDAV server configuration.
@@ -34,6 +35,11 @@ type CalDAVConfig struct {
 type CardDAVConfig struct {
 	URL                string `json:"url,omitempty"`
 	DefaultAddressBook string `json:"default_address_book,omitempty"`
+}
+
+// WebDAVConfig holds WebDAV server configuration.
+type WebDAVConfig struct {
+	URL string `json:"url,omitempty"`
 }
 
 // ServerConfig holds server connection details.
