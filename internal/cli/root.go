@@ -59,7 +59,7 @@ func (c *AIHelpCmd) Run(root *Root) error {
 
 var aiHelpText = `# sog — AI Help
 
-Standard Open (mail) CLI using IMAP4 and SMTP protocols.
+Standards Ops Gadget — IMAP/SMTP/CalDAV/CardDAV/WebDAV CLI.
 
 ## Authentication
 

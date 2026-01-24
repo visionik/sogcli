@@ -1,6 +1,7 @@
-// sog - Standard Open (mail) CLI
+// sog - Standards Ops Gadget
 //
-// IMAP4/SMTP alternative to gog/mog for standard mail protocols.
+// Open-standards CLI for mail, calendar, contacts, tasks, and files.
+// IMAP/SMTP/CalDAV/CardDAV/WebDAV alternative to gog (Google) and mog (Microsoft).
 package main
 
 import (
@@ -17,7 +18,7 @@ func main() {
 	var root cli.Root
 	ctx := kong.Parse(&root,
 		kong.Name("sog"),
-		kong.Description("Standard Open (mail) CLI — IMAP4/SMTP for everyone"),
+		kong.Description("Standards Ops Gadget — IMAP/SMTP/CalDAV/CardDAV/WebDAV CLI"),
 		kong.UsageOnError(),
 		kong.Vars{
 			"version": version,
