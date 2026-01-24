@@ -156,6 +156,8 @@ Contributions welcome! Please open an issue or PR.
 
 ## Credits
 
+Created by [visionik@pobox.com](mailto:visionik@pobox.com) and Vinston ([Clawdbot](https://github.com/clawdbot/clawdbot)) using the [warping](https://github.com/visionik/warping) coding skill.
+
 Part of the **Ops Gadget** family:
 - **gog** — Google Ops Gadget
 - **mog** — Microsoft Ops Gadget  
