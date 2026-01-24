@@ -1,26 +1,63 @@
-# sog — Standard Open (mail) CLI
+# sog
 
-[![Go](https://img.shields.io/badge/Go-1.23+-00ADD8?style=flat&logo=go)](https://go.dev)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+**Standards Ops Gadget** — CLI for IMAP/SMTP/CalDAV/CardDAV/WebDAV
 
-A **gog-compatible** CLI for email using standard IMAP4 and SMTP protocols. No vendor lock-in, works with any mail provider.
+The open-standards alternative to [gog](https://github.com/steipete/gog) (Google) and mog (Microsoft).
 
-## Why sog?
+```bash
+# Mail
+sog mail list
+sog mail get 1234
+sog mail send --to user@example.com --subject "Hello" --body "Hi there"
 
-| Feature | gog (Google) | mog (Microsoft) | **sog (Standard)** |
-|---------|--------------|-----------------|---------------------|
-| Protocol | Google APIs | MS Graph | IMAP4/SMTP |
-| Providers | Gmail only | Outlook only | **Any provider** |
-| Auth | OAuth | OAuth | App passwords |
-| Vendor lock-in | Yes | Yes | **No** |
+# Calendar
+sog cal today
+sog cal create "Team Meeting" --start "2024-01-25T14:00" --duration 1h
 
-## Install
+# Contacts
+sog contacts search "John"
+sog contacts create "John Doe" -e john@example.com -p 555-1234
+
+# Tasks
+sog tasks list
+sog tasks add "Review PR" --due 2024-01-26 -p 1
+
+# Files
+sog drive ls
+sog drive upload report.pdf /documents/
+sog drive download /documents/report.pdf
+
+# Meeting Invites
+sog invite send "Project Kickoff" user@example.com --start "2024-01-25T10:00"
+```
+
+## Features
+
+| Feature | Protocol | Commands |
+|---------|----------|----------|
+| **Mail** | IMAP/SMTP | `list`, `get`, `search`, `send`, `reply`, `forward`, `move`, `delete` |
+| **Calendar** | CalDAV | `list`, `get`, `search`, `today`, `week`, `create`, `update`, `delete` |
+| **Contacts** | CardDAV | `list`, `get`, `search`, `create`, `update`, `delete` |
+| **Tasks** | CalDAV VTODO | `list`, `add`, `update`, `done`, `undo`, `delete`, `clear`, `due`, `overdue` |
+| **Files** | WebDAV | `ls`, `get`, `download`, `upload`, `mkdir`, `delete`, `move`, `copy`, `cat` |
+| **Invites** | iTIP/iMIP | `send`, `reply`, `cancel`, `parse`, `preview` |
+
+## Installation
+
+### Homebrew (coming soon)
+
+```bash
+brew install visionik/tap/sog
+```
+
+### From Source
 
 ```bash
 go install github.com/visionik/sogcli/cmd/sog@latest
 ```
 
-Or build from source:
+### Build from Source
+
 ```bash
 git clone https://github.com/visionik/sogcli.git
 cd sogcli
@@ -29,146 +66,105 @@ go build -o sog ./cmd/sog
 
 ## Quick Start
 
-```bash
-# Add account (auto-discovers Gmail, Outlook, etc.)
-sog auth add you@gmail.com --discover --password "your-app-password"
+### 1. Add an Account
 
-# List messages
+```bash
+# Auto-discover servers from DNS
+sog auth add you@fastmail.com --discover
+
+# Or specify manually
+sog auth add you@example.com \
+  --imap-host imap.example.com \
+  --smtp-host smtp.example.com \
+  --caldav-url https://caldav.example.com/ \
+  --carddav-url https://carddav.example.com/ \
+  --webdav-url https://webdav.example.com/
+```
+
+### 2. Test Connection
+
+```bash
+sog auth test
+```
+
+### 3. Start Using
+
+```bash
 sog mail list
-
-# Send a message
-sog mail send --to friend@example.com --subject "Hello" --body "Hi from sog!"
-
-# Reply to a message
-sog mail reply 12345 --body "Thanks!"
-
-# Watch for new mail
-sog idle
-```
-
-## Features
-
-### Authentication
-```bash
-sog auth add <email> [flags]    # Add account (supports --discover)
-sog auth list                   # List accounts
-sog auth test [email]           # Test connection
-sog auth remove <email>         # Remove account
-```
-
-### Mail Operations
-```bash
-sog mail list [folder]          # List messages
-sog mail get <uid>              # Get message by UID
-sog mail search <query>         # Search (IMAP syntax)
-sog mail send                   # Send message
-sog mail reply <uid>            # Reply to message
-sog mail forward <uid>          # Forward message
-sog mail move <uid> <folder>    # Move message
-sog mail copy <uid> <folder>    # Copy message
-sog mail flag <uid> <flag>      # Set flag (seen, flagged, etc.)
-sog mail unflag <uid> <flag>    # Remove flag
-sog mail delete <uid>           # Delete message
-```
-
-### Folders
-```bash
-sog folders list                # List folders
-sog folders create <name>       # Create folder
-sog folders delete <name>       # Delete folder
-sog folders rename <old> <new>  # Rename folder
-```
-
-### Drafts
-```bash
-sog drafts list                 # List drafts
-sog drafts create               # Create draft
-sog drafts send <uid>           # Send draft
-sog drafts delete <uid>         # Delete draft
-```
-
-### IMAP IDLE
-```bash
-sog idle                        # Watch for new mail
-sog idle --exec 'notify-send "New mail!"'
-```
-
-## Search Syntax
-
-sog uses IMAP SEARCH syntax:
-
-```bash
-sog mail search 'FROM sender@example.com'
-sog mail search 'SUBJECT meeting'
-sog mail search 'SINCE 1-Jan-2026'
-sog mail search 'FROM boss SUBJECT urgent UNSEEN'
-sog mail search 'ALL'
-```
-
-## Global Flags
-
-```
--a, --account     Account to use (or set SOG_ACCOUNT)
-    --json        JSON output
-    --plain       TSV output (no colors)
-    --force       Skip confirmations
-    --no-input    Never prompt (CI mode)
--v, --verbose     Verbose output
+sog cal today
+sog contacts list
 ```
 
 ## Configuration
 
-- **Config file:** `~/.config/sog/config.json`
-- **Credentials:** OS keyring (macOS Keychain, Windows Credential Manager, etc.)
-- **Env vars:** `SOG_ACCOUNT`, `SOG_PASSWORD_<email>`
+Config file: `~/.config/sog/config.json`
 
-## Provider Setup
+Passwords are stored securely in your system keychain.
 
-### Gmail / Google Workspace
-1. Enable 2-Step Verification: https://myaccount.google.com/security
-2. Generate App Password: https://myaccount.google.com/apppasswords
-3. Add account:
-```bash
-sog auth add you@gmail.com --discover --password "xxxx xxxx xxxx xxxx"
+### Environment Variables
+
+- `SOG_ACCOUNT` — Default account email
+
+### Global Flags
+
+```
+--account, -a    Account to use
+--json           JSON output (for scripting)
+--plain          TSV output (parseable)
+--force          Skip confirmations
+--no-input       Never prompt (CI mode)
+--verbose, -v    Debug logging
 ```
 
-### Outlook / Microsoft 365
+## Tested Providers
+
+| Provider | IMAP/SMTP | CalDAV | CardDAV | WebDAV |
+|----------|-----------|--------|---------|--------|
+| **Fastmail** | ✅ | ✅ | ✅ | ✅ |
+| **iCloud** | ✅ | ✅ | ✅ | — |
+| **Proton Mail** | ✅ | ✅ | ✅ | — |
+| **Mailbox.org** | ✅ | ✅ | ✅ | ✅ |
+| **Zoho** | ✅ | ✅ | ✅ | — |
+| **Self-hosted** | ✅ | ✅ | ✅ | ✅ |
+
+## Comparison with gog/mog
+
+| | sog | gog | mog |
+|---|-----|-----|-----|
+| **Provider** | Any (open standards) | Google only | Microsoft only |
+| **Auth** | App passwords | OAuth 2.0 | OAuth 2.0 |
+| **Mail** | ✅ IMAP/SMTP | ✅ Gmail API | ✅ Graph API |
+| **Calendar** | ✅ CalDAV | ✅ Calendar API | ✅ Graph API |
+| **Contacts** | ✅ CardDAV | ✅ People API | ✅ Graph API |
+| **Tasks** | ✅ CalDAV VTODO | ✅ Tasks API | ✅ To Do API |
+| **Files** | ✅ WebDAV | ✅ Drive API | ✅ OneDrive API |
+| **Sheets** | — | ✅ | — |
+| **Docs** | — | ✅ | — |
+
+## AI/LLM Integration
+
+sog is designed for AI agents and automation:
+
 ```bash
-sog auth add you@outlook.com --discover --password "your-app-password"
-```
+# Structured output
+sog mail list --json
+sog cal today --json
 
-### Other Providers
-```bash
-sog auth add you@example.com \
-  --imap-host imap.example.com --imap-port 993 \
-  --smtp-host smtp.example.com --smtp-port 587 \
-  --password "your-password"
-```
-
-## For AI Agents
-
-```bash
-sog ai-help    # Detailed documentation for LLM integration
-```
-
-## Development
-
-```bash
-task build          # Build binary
-task test           # Run unit tests
-task test:integration  # Run integration tests (requires Docker)
-task test:all       # All tests with coverage
-task check          # Pre-commit checks
+# Detailed help for agents
+sog ai-help
 ```
 
 ## License
 
 MIT
 
+## Contributing
+
+Contributions welcome! Please open an issue or PR.
+
 ## Credits
 
-Built with:
-- [emersion/go-imap](https://github.com/emersion/go-imap) — IMAP client
-- [emersion/go-smtp](https://github.com/emersion/go-smtp) — SMTP client
-- [alecthomas/kong](https://github.com/alecthomas/kong) — CLI framework
-- [zalando/go-keyring](https://github.com/zalando/go-keyring) — Credential storage
+Part of the **Ops Gadget** family:
+- **gog** — Google Ops Gadget
+- **mog** — Microsoft Ops Gadget  
+- **sog** — Standards Ops Gadget
