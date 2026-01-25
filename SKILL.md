@@ -73,6 +73,7 @@ sog mail send --to <email> --subject <text> [flags]
   --subject        Subject line
   --body           Message body
   --body-file      Read body from file (- for stdin)
+  --body-html      HTML body content
 
 sog mail reply <uid> --body <text>
 sog mail forward <uid> --to <email>
@@ -224,6 +225,8 @@ sog mail list --max 10
 
 # Send an email
 sog mail send --to user@example.com --subject "Hello" --body "Hi there"
+sog mail send --to user@example.com --subject "Report" --body-file report.md
+cat draft.txt | sog mail send --to user@example.com --subject "Hi" --body-file -
 
 # Today's calendar
 sog cal today
