@@ -251,9 +251,19 @@ sog contacts search "John"
 
 Other standards-compliant providers should work but have not been tested yet.
 
+## Credential Storage
+
+Passwords are stored securely in the native system credential store:
+
+| Platform | Backend |
+|----------|---------|
+| **macOS** | Keychain |
+| **Windows** | Windows Credential Manager |
+| **Linux/BSD** | D-Bus Secret Service (GNOME Keyring, KWallet) |
+
+Supports separate passwords per protocol (IMAP, SMTP, CalDAV, CardDAV, WebDAV).
+
 ## Notes
 
 - Set `SOG_ACCOUNT=you@example.com` to avoid repeating `--account`
-- Passwords stored securely in system keychain
-- Supports separate passwords per protocol (IMAP, SMTP, CalDAV, CardDAV, WebDAV)
 - Part of the Ops Gadget family: gog (Google), mog (Microsoft), sog (Standards)
