@@ -32,14 +32,25 @@ type AuthAddCmd struct {
 	Discover   bool   `help:"Auto-discover servers from DNS"`
 	Insecure   bool   `help:"Skip TLS certificate verification"`
 	NoTLS      bool   `help:"Disable TLS (plain text connection)" name:"no-tls"`
+	Storage    string `help:"Password storage: keychain or file" default:"keychain" enum:"keychain,file"`
 }
 
 // Run executes the auth add command.
 func (c *AuthAddCmd) Run(root *Root) error {
+	// Set storage type
+	if c.Storage == "file" {
+		config.SetStorageType(config.StorageFile)
+	} else {
+		config.SetStorageType(config.StorageKeyring)
+	}
+
 	cfg, err := config.Load()
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
+
+	// Save storage preference
+	cfg.Storage = c.Storage
 
 	// Auto-discover if --discover flag set
 	if c.Discover {
@@ -105,7 +116,7 @@ func (c *AuthAddCmd) Run(root *Root) error {
 		return fmt.Errorf("failed to add account: %w", err)
 	}
 
-	fmt.Printf("Added account: %s\n", c.Email)
+	fmt.Printf("Added account: %s (storage: %s)\n", c.Email, c.Storage)
 	return nil
 }
 

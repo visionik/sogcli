@@ -12,6 +12,7 @@ import (
 type Config struct {
 	Accounts       map[string]Account `json:"accounts"`
 	DefaultAccount string             `json:"default_account,omitempty"`
+	Storage        string             `json:"storage,omitempty"` // keychain or file
 	path           string
 }
 
@@ -95,6 +96,14 @@ func Load() (*Config, error) {
 	}
 
 	cfg.path = path
+
+	// Set storage type from config
+	if cfg.Storage == "file" {
+		SetStorageType(StorageFile)
+	} else {
+		SetStorageType(StorageKeyring)
+	}
+
 	return cfg, nil
 }
 
