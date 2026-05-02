@@ -327,7 +327,7 @@ sog follows [gog](https://github.com/steipete/gog) and [mog](https://github.com/
 | Provider | IMAP/SMTP | CalDAV | CardDAV | WebDAV |
 |----------|-----------|--------|---------|--------|
 | **Fastmail** | ✅ | ✅ | ✅ | ✅ |
-
+| **ICloud** | ✅ | | | |
 *Other standards-compliant providers should work but have not been tested yet.*
 
 ---
