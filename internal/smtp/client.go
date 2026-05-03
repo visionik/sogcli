@@ -139,18 +139,7 @@ func (c *Client) Send(ctx context.Context, msg *Message) error {
 		InsecureSkipVerify: c.insecure,
 	}
 
-	var client *smtp.Client
-	var err error
-
-	if c.noTLS {
-		client, err = smtp.Dial(addr)
-	} else if c.tls {
-		client, err = smtp.DialTLS(addr, tlsConfig)
-	} else if c.startTLS {
-		client, err = smtp.DialStartTLS(addr, tlsConfig)
-	} else {
-		client, err = smtp.Dial(addr)
-	}
+   client, err := c.selectConnectionType(addr, tlsConfig)
 	if err != nil {
 		return fmt.Errorf("failed to connect: %w", err)
 	}
@@ -198,40 +187,57 @@ func generateBoundary() string {
 	return fmt.Sprintf("----=_Part_%x", b)
 }
 
+func (c *Client) selectConnectionType(addr string, tlsConfig *tls.Config) (*smtp.Client, error) {
+      if c.noTLS {
+         return smtp.Dial(addr)
+      }
+
+      if c.tls {
+         client, err := smtp.DialTLS(addr, tlsConfig)
+
+         if err != nil {
+            if c.startTLS {
+               return smtp.DialStartTLS(addr, tlsConfig)
+            }
+            return nil, err
+         }
+
+         return client, nil
+      }
+
+      if c.startTLS {
+         return smtp.DialStartTLS(addr, tlsConfig)
+      }
+
+      return smtp.Dial(addr)
+}
+
+func (c *Client) authenticateAndQuit(client *smtp.Client) error {
+    defer client.Close()
+
+    // Authenticate
+    auth := sasl.NewPlainClient("", c.email, c.password)
+    if err := client.Auth(auth); err != nil {
+        return fmt.Errorf("failed to authenticate: %w", err)
+    }
+
+    return client.Quit()
+}
+
 // TestConnection tests the SMTP connection.
 func (c *Client) TestConnection() error {
-	addr := fmt.Sprintf("%s:%d", c.host, c.port)
+    addr := fmt.Sprintf("%s:%d", c.host, c.port)
 
-	var client *smtp.Client
-	var err error
+    tlsConfig := &tls.Config{
+        ServerName:         c.host,
+        InsecureSkipVerify: c.insecure,
+    }
 
-	tlsConfig := &tls.Config{
-		ServerName:         c.host,
-		InsecureSkipVerify: c.insecure,
-	}
+    client, err := c.selectConnectionType(addr, tlsConfig)
+    if err != nil {
+       return err
+    }
 
-	if c.noTLS {
-		// Plain text connection
-		client, err = smtp.Dial(addr)
-	} else if c.tls {
-		// Direct TLS (SMTPS, port 465)
-		client, err = smtp.DialTLS(addr, tlsConfig)
-	} else if c.startTLS {
-		// STARTTLS (port 587)
-		client, err = smtp.DialStartTLS(addr, tlsConfig)
-	} else {
-		client, err = smtp.Dial(addr)
-	}
-	if err != nil {
-		return fmt.Errorf("failed to connect: %w", err)
-	}
-	defer client.Close()
-
-	// Authenticate
-	auth := sasl.NewPlainClient("", c.email, c.password)
-	if err := client.Auth(auth); err != nil {
-		return fmt.Errorf("failed to authenticate: %w", err)
-	}
-
-	return client.Quit()
+    return c.authenticateAndQuit(client)
 }
+
