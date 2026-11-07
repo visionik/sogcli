@@ -143,6 +143,7 @@ func (c *Client) ListEvents(ctx context.Context, calPath string, start, end time
 					"LOCATION",
 					"DTSTART",
 					"DTEND",
+					"DURATION",
 					"ORGANIZER",
 					"ATTENDEE",
 					"STATUS",
