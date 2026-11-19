@@ -36,7 +36,7 @@ type Task struct {
 	Due         time.Time `json:"due,omitempty"`
 	Start       time.Time `json:"start,omitempty"`
 	Completed   time.Time `json:"completed,omitempty"`
-	Status      string    `json:"status"` // NEEDS-ACTION, IN-PROCESS, COMPLETED, CANCELLED
+	Status      string    `json:"status"`             // NEEDS-ACTION, IN-PROCESS, COMPLETED, CANCELLED
 	Priority    int       `json:"priority,omitempty"` // 1-9, 1=highest
 	Percent     int       `json:"percent,omitempty"`  // 0-100
 	Categories  []string  `json:"categories,omitempty"`
@@ -126,11 +126,12 @@ func (c *Client) FindCalendars(ctx context.Context) ([]Calendar, error) {
 	return result, nil
 }
 
-// ListEvents retrieves events from a calendar within a time range.
+// ListEvents retrieves expanded event occurrences within a time range.
 func (c *Client) ListEvents(ctx context.Context, calPath string, start, end time.Time) ([]Event, error) {
 	query := &caldav.CalendarQuery{
 		CompRequest: caldav.CalendarCompRequest{
-			Name: "VCALENDAR",
+			Name:   "VCALENDAR",
+			Expand: &caldav.CalendarExpandRequest{Start: start, End: end},
 			Props: []string{
 				"VERSION",
 			},
@@ -168,12 +169,14 @@ func (c *Client) ListEvents(ctx context.Context, calPath string, start, end time
 
 	events := make([]Event, 0, len(objects))
 	for _, obj := range objects {
-		event, err := parseICalEvent(obj.Data)
+		occurrences, err := parseICalEvents(obj.Data)
 		if err != nil {
 			continue // Skip malformed events
 		}
-		event.ETag = obj.ETag
-		events = append(events, *event)
+		for _, event := range occurrences {
+			event.ETag = obj.ETag
+			events = append(events, event)
+		}
 	}
 
 	return events, nil
@@ -367,12 +370,22 @@ func (c *Client) findTaskByUID(ctx context.Context, calPath, uid string) (*Task,
 	return nil, fmt.Errorf("task not found: %s", uid)
 }
 
-// parseICalEvent parses an iCalendar VEVENT into an Event.
+// parseICalEvent returns the first event for single-resource operations.
 func parseICalEvent(cal *ical.Calendar) (*Event, error) {
+	events, err := parseICalEvents(cal)
+	if err != nil {
+		return nil, err
+	}
+	return &events[0], nil
+}
+
+// parseICalEvents retains every VEVENT, including server-expanded occurrences.
+func parseICalEvents(cal *ical.Calendar) ([]Event, error) {
 	if cal == nil {
 		return nil, fmt.Errorf("nil calendar data")
 	}
 
+	var events []Event
 	for _, child := range cal.Children {
 		if child.Name != ical.CompEvent {
 			continue
@@ -447,10 +460,13 @@ func parseICalEvent(cal *ical.Calendar) (*Event, error) {
 			event.Attendees = append(event.Attendees, attendee)
 		}
 
-		return event, nil
+		events = append(events, *event)
 	}
 
-	return nil, fmt.Errorf("no VEVENT found in calendar data")
+	if len(events) == 0 {
+		return nil, fmt.Errorf("no VEVENT found in calendar data")
+	}
+	return events, nil
 }
 
 // createICalEvent creates an iCalendar from an Event.

@@ -2,7 +2,9 @@ package cli
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -487,9 +489,20 @@ func generateUID() string {
 
 // outputEventsJSON outputs events as JSON.
 func outputEventsJSON(events []caldav.Event) error {
+	encoder := json.NewEncoder(os.Stdout)
 	for _, e := range events {
-		fmt.Printf(`{"uid":"%s","summary":"%s","start":"%s","end":"%s","location":"%s","all_day":%t}`+"\n",
-			e.UID, e.Summary, e.Start.Format(time.RFC3339), e.End.Format(time.RFC3339), e.Location, e.AllDay)
+		row := struct {
+			UID      string `json:"uid"`
+			Summary  string `json:"summary"`
+			Start    string `json:"start"`
+			End      string `json:"end"`
+			Location string `json:"location"`
+			AllDay   bool   `json:"all_day"`
+			Status   string `json:"status,omitempty"`
+		}{e.UID, e.Summary, e.Start.Format(time.RFC3339), e.End.Format(time.RFC3339), e.Location, e.AllDay, e.Status}
+		if err := encoder.Encode(row); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -557,8 +570,16 @@ func outputEventDetail(event *caldav.Event) error {
 
 // outputCalendarsJSON outputs calendars as JSON.
 func outputCalendarsJSON(calendars []caldav.Calendar) error {
+	encoder := json.NewEncoder(os.Stdout)
 	for _, c := range calendars {
-		fmt.Printf(`{"path":"%s","name":"%s","description":"%s"}`+"\n", c.Path, c.Name, c.Description)
+		row := struct {
+			Path        string `json:"path"`
+			Name        string `json:"name"`
+			Description string `json:"description"`
+		}{c.Path, c.Name, c.Description}
+		if err := encoder.Encode(row); err != nil {
+			return err
+		}
 	}
 	return nil
 }
