@@ -72,7 +72,6 @@ sog cal export [calendar]         # Export to ICS
 - ! Support ETAG for sync/conflict detection
 - ~ Support calendar-multiget for batch fetch
 - ~ Support sync-collection for efficient sync
-- ? Support calendar-query for server-side filtering
 
 ### Dependencies
 ```go
